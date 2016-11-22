@@ -27,7 +27,6 @@
 #include <assert.h>
 #include <math.h>
 #include <limits.h>
-#include "mpi.h"
 
 //#include "hca_parse_options.h"
 #include "hca_sync.h"
@@ -37,7 +36,7 @@
 #include "../config.h"
 
 
-#ifdef HAVE_SYNC 
+#if defined(HAVE_SYNC) && defined(HAVE_MPI)
 
 
 #include "../liblsb_internal.hpp"
@@ -45,6 +44,11 @@
 #ifdef HAVE_HRTIMER
 #include "../hrtimer/hrtimer.h"
 #endif
+
+
+
+#include <mpi.h>
+
 
 
 int _hca_init_synchronization_module();

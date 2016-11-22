@@ -24,6 +24,8 @@
 #ifndef HCA_SYNC_H_
 #define HCA_SYNC_H_
 
+#include "../liblsb.h"
+
 typedef struct {
     long n_rep; /* --repetitions */
     double window_size_sec; /* --window-size */
