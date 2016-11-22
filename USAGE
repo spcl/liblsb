@@ -1,0 +1,191 @@
+LibLSB is a library for instrumenting applications easily to enable
+coarse-grained profiling for performance modeling.
+
+In the LibLSB philosophy, an execution of a code is separated into
+epochs. An epoch is a part of the execution that is benchmarked (time as
+well as performance counters). 
+
+LibLSB can record up to two (compatible) PAPI counters. The two PAPI
+counters to record can be defined with the environment variables
+LSB_PAPI1 and LSB_PAPI2. 
+
+Library Interface
+-----------------
+
+The LibLSB library offers the following calls:
+
+* void LSB_Init(const char *projname, int autoprof_interval)
+* call LSB_Init(character projname, int length_of_projname, int autoprof_interval)
+
+This is an initialization function to be called exactly once per
+application run. This needs to be called before any other LSB function
+is called. The first argument specifies a string used for the output
+files. The autoprof interval is typically 0, if it is x!=0 then the
+library will set a timer that calls it back every x milliseconds. The
+library records the time and specified PAPI counters at each callback.
+
+
+
+* void LSB_Finalize()
+* call LSB_Finalize()
+
+This finishes a LSB trace (and writes the output files). It must be
+calld after all other LSB functions have been called. 
+
+
+
+* void LSB_Reg_param(const char *format, ...)
+* call LSB_Reg_param_int(character parname, int length_of_parname, int parvalue)
+
+This registers an application parameter which is printed into the output
+file. This is mainly used for modeling tools to parametrize parametrized
+models across multiple invocations.
+
+
+
+*void LSB_Set_Rparam_int(const char * pindex, int val);
+*void LSB_Set_Rparam_string(const char * pindex, const char * val);
+*void LSB_Set_Rparam_long(const char * pindex, int64_t val);
+*void LSB_Set_Rparam_double(const char * pindex, double val);
+
+*call LSB_Set_Rparam_int(character pindex, int val);
+
+This set a new <int/string/long/double> value for the the parameter indicated by the string "pindex". 
+This value will be associated with all the subsequent measurements.
+
+
+
+* void LSB_Rec(unsigned int id)
+* call LSB_Rec(int id)
+
+This ends the currently active epoch and starts a new one. The call
+writes a record (time and PAPI counters) into the trace. The passed
+integer is used as an identifier for the code region for which it ends
+the epoch.
+
+
+
+* void LSB_Res()
+* call LSB_Res()
+
+This function ends the current epoch and starts a new one but doscards
+the counter values (does not write them to the ouput file).
+
+
+
+* void LSB_Rec_ints(unsigned int id, int int1, int int2)
+* call LSB_Rec_ints(int id, int int1, int int2)
+
+This call records two integers into the trace. The id is used to
+identify the record point. This function can be used to record message
+counts, destinations, or message volumes for performance modeling
+puposes.
+
+
+
+* void LSB_Rec_disable() and void LSB_Rec_enable()
+* call LSB_Rec_disable() and void LSB_Rec_enable()
+
+This calls disable or enable LSB recording. All LSB_Rec_* calls will not
+record the values of LSB recording is disabled. LSB recording is enabled
+by default after LSB_Init(). This can be used to disable recording of
+warmup phases or similar not-relevant parts of a run.
+
+
+
+* void LSB_Flush()
+* call LSB_Flush()
+
+This function ends the current epoch and writes a full checkpoint into
+the output files. This can be used if algorithm parameters change. You
+probably don't want to use this function :-).
+
+
+* void LSB_Fold(unsigned int id, lsb_op_t op, double * result)
+
+This function locally reduces all the measurement with a given "id" that
+have been taken before this call. The reduction is performed applying the
+operator "op" and the result is stored in "result". Possible operators 
+are: LSB_SUM, LSB_COUNT, LSB_MEDIAN, LSB_MAX, LSB_MIN.
+
+
+
+Time-Window Synchronization
+---------------------------
+
+In order to use the following functions you need to specify the flag 
+"--enable-sync" during the library configuration phase. This part 
+of library is based on the work of Sascha et Al..
+
+* void LSB_Sync_init(MPI_Comm comm, double window);
+
+
+
+This function initializes a time-window synchronization phase. The MPI 
+communicator "comm" identifies the processes among which the synchronization
+has to be performed. The "window" parameter is an estimation (in microseconds)
+of the time between two consecutive LSB_Sync() calls. See "tests/test_sync.c"
+for an usage example. This is a collective call.
+
+
+
+* void LSB_Sync_reset(double window);
+
+This function resets the window parameter. It is usually called when a new
+synchronization phase, with a different time interval between consecute
+LSB_Sync() calls, starts. This is a collective call. The window is set at 
+the maximum window specified by all the involved processes.
+
+
+
+* double LSB_Sync();
+
+This function executes the actual time syncrhonization. The calling process
+will wait until the value of its clock, normalized to the global time, 
+ reaches the next synchronization time. A new LSB_Sync() is expected to be 
+called within "window" microseconds after the previous call. If this constraint 
+is not satisfied, the call return a value that it's the
+time difference between the current and the previous LSB_Sync() call (in microseconds). 
+This value can be used to reset the window with LSB_Sync_reset(). 
+A return value different from 0 indicates that the synchronization failed.
+
+
+
+Environment Control Variables
+-----------------------------
+
+The dynamic behavior of LSB is controlled through environment variables. 
+We will provide a list in the following.
+
+LSB_OUTFILE - specifies the name of the poutput files. It will always be 
+prefixed with lsb. and postfixed with the MPI rank (if compiled with MPI 
+support) and a version number (if the file existed at startup).
+
+LSB_ENABLE_PROCMASK - specifies the processes that should enable LSB as
+a comma-separated list (starting from 0). If this flag is set, then all
+other processes disable LSB completely. This can be used to disable LSB
+completely by setting it to -1 or an invalid rank.
+
+LSB_OUTPUT_FORMAT - specifies the output format. Currently, the
+following formats are supported:
+ - pretty (default) - prints nicely aligned lists
+ - efficient - prints machine (R-) readable format
+ - accumulated - prints only on rank 0, accumulates all information
+   across other ranks in MPI_COMM_WORLD as min, med, max, stddev. When
+   specifying this option, the user *MUST* ensure that all processes in
+   MPI_COMM_WORLD have the same number and order of recorded events!!
+   Integer and floating point events are not accumulated yet but only
+   printed from rank 0 (can be implemented)!
+
+Known Issues
+------------
+
+The autoprof feature will call malloc in signal handlers and this is not
+safe. It was observed that code may hang or corrupt memory when the
+signal handler is executed while libc malloc (which is not reentrant) is
+interrupted. This is *very* unlikely for traditional codes in C and
+Fortran since they rarely call malloc, however, it is *very* likely for
+C++ template-based codes. Thus, use autoprof with care! A possible
+workaround is to reduce/avoid malloc calls during profiling by
+preallocating a large records array, use the environment variable
+LSB_AUTOPROF_WORKAROUND=<int> to set the number of preallocated records.

@@ -1,0 +1,11 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+
+Name: liblsb
+Description: LibSciBench: enables benchmarking and profiling parallel code.
+Requires: 
+Version: @PACKAGE_VERSION@
+Libs: -L${libdir} -llsb @PAPI_LDFLAGS@
+Cflags: -I${includedir}/ @PAPI_CFLAGS@

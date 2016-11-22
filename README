@@ -1,0 +1,30 @@
+Installation
+=============
+
+./configure
+make
+make install
+
+
+The MPI support is enabled by default. You can disable it passing --without-mpi to the configure script. You can compile agains a specific MPI
+build using the MPICC and MPICXX env vars.
+
+PAPI counters can be enabled/disabled with the --with-papi/--without-papi options.
+
+You can force the hr timer to target a specific arch with the HRT_ARCH env var. 
+
+Usage example in: tests/lvect_bench.cpp
+
+
+
+Compiling under Cray:
+ - switch to PrgEnv-gnu: module switch PrgEnv-cray/5.2.82 PrgEnv-gnu
+ Without PAPI:
+ - configure with: MPICC=cc MPICXX=CC ./configure --prefix=$(pwd)/build/ --with-mpi --without-papi 
+ - make; make install;
+ With PAPI:
+ - module load papi
+ - configure with: MPICC=cc MPICXX=CC ./configure --prefix=$(pwd)/build/ --with-mpi --with-papi 
+ - make; make install;
+
+

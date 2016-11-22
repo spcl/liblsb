@@ -1,0 +1,17 @@
+What's new in liblsb
+
+2016-03-10:
+  - Bugfix: submicroseconds measurements enabled
+  - Bugfix: fixed struct initializiation making craycc complaining
+
+TODO:
+  - Calling LSB_Flush() before the LSB_Finalize() can result in an incorrect behavior. 
+    The flushing should preserve the last parameters set by the user via (LSB_Set_Rparam_int/string).
+  - Mac: multithread & PAPI doesn't work
+
+Feature requests:
+  - Add support for multiple (i.e., >2) PAPI counters 
+  - Temporal window synchronization
+  - Support to check if a measurent is within a certain CI at runtime.
+  - Mac: LSB_Set_Rparam_int should take a int64_t insteand of an int32_t
+

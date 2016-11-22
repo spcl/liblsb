@@ -1,0 +1,42 @@
+
+*Normality check*
+  - Three tools: shapiro, density plot, histogram+density plot
+  - Specify the data directory and the filter* (optional)
+  - Specify the column to test/plot
+  - For the shapiro test results will be printed on screen (stdout)
+  Example: ./lsbpp.R data/ --filter="TYPE=='FFLIB'&PEs==32" shapiro VALUE 
+
+  - You can lognormalize or knormalize the data with specific options
+  Example: ./lsbpp.R data/ --lognormalize --filter="TYPE=='FFLIB'&PEs==32" shapiro VALUE 
+  Example: ./lsbpp.R data/ --knormalize=5 --filter="TYPE=='FFLIB'&PEs==32" shapiro VALUE 
+
+*Box and Violin plots*
+  - Specify the data and the filter* (optional)
+  - Specify the x and y column and the associated label (optional)
+  Example: ./lsbpp.R data/ --filter="TYPE=='FFLIB'" boxplot PEs max --xlabel="Time" --ylabel="Latency"
+
+*ANOVA/Kruskal–Wallis*
+  - Specify the data and the filter* (optional)
+  - Specify x and y columns
+  - The results will be printed on screen (stdout)
+./lsbpp.R data/ --filter="TYPE=='FFLIB'" anova PEs VALUE
+
+
+*Quantile Regression Plot* 
+ - Specify two data dirs (with different, optional, filters*).
+ - Specify the columns on which perform the comparison
+
+  Example: QR plot on two series (same datadir) identified by different filters
+           ./lsbpp.R data/ --filter="TYPE=='FFLIB'&PEs==32" data/ --filter_cmp="TYPE=='FFLIB'&PEs==16" qr VALUE VALUE
+
+*Summarizing the data*
+  - Data can be summarized specifying the grouping columns and the measure column. Once summarized, the following columns name are available:
+      - Grouping columns
+      - mean/median
+      - max/min
+      - ...
+  Example: Show a boxplot on data grouped per PEs (the per-rank statistics are computed). The boxplot is on the "max". 
+  ./lsbpp.R data/ --filter="TYPE=='FFLIB'" --summarize PEs VALUE --ci=0.99 --qi=0.95 boxplot PEs max --xlabel="Time" --ylabel="Latency"
+
+
+*Filter experssions cannot contain spaces
