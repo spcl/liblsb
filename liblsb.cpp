@@ -181,7 +181,7 @@ void LSB_Fold(unsigned int id, lsb_op_t op, double * result){
 }
 
 double LSB_Rec(unsigned int id){
-   double res = LSB_Stop(id);
+   double res = LSB_Stop(id, 1);
    lsb_data->next = lsb_data->recs.size();
    return res;
 }
@@ -190,19 +190,25 @@ void LSB_Next(){
    lsb_data->next = lsb_data->recs.size();
 }
 
+double LSB_Check(unsigned int id){
+   double res = LSB_Stop(id, 0);
+   lsb_data->next = lsb_data->recs.size();
+   return res;
+}
+
 /**
  * write a tracing record
  * this ends the epoch with the specified id and opens a new epoch
  * @param id user-defined kernel id
  */
-double LSB_Stop(unsigned int id) {
+double LSB_Stop(unsigned int id, unsigned int reset) {
   if (lsb_data->lsb_disabled) return -1;
   //CHK_DISABLED;
 #ifdef _OPENMP
 #pragma omp master
 {
 #endif
-  double tstart; // epoch duration and function start time
+  double tstart, tlast; // epoch duration and function start time
 #if defined HAVE_PAPI
   tstart  = PAPI_get_real_usec();
 
@@ -269,7 +275,7 @@ double LSB_Stop(unsigned int id) {
 #if defined HAVE_PAPI
   PAPI_start(lsb_data->eventset);
 
-  lsb_data->tlast = PAPI_get_real_usec();
+  tlast = PAPI_get_real_usec();
 #elif  HAVE_LIKWID
     PMvalues[0] = msr_read(cpu_id, MSR_AMD15_PMC0);
     PMvalues[1] = msr_read(cpu_id, MSR_AMD15_PMC1);
@@ -283,15 +289,16 @@ double LSB_Stop(unsigned int id) {
     PMvalues[9] = msr_read(cpu_id, MSR_AMD15_NB_PMC3);
     HRT_GET_TIMESTAMP(t);
     HRT_GET_TIME(t, ticks);
-    lsb_data->tlast =  HRT_GET_USEC(ticks);
+    tlast =  HRT_GET_USEC(ticks);
 #elif defined HAVE_HRTIMER
 	HRT_GET_TIMESTAMP(t);
 	HRT_GET_TIME(t, ticks);
-	lsb_data->tlast = HRT_GET_USEC(ticks);
+	tlast = HRT_GET_USEC(ticks);
 #else
 #error "No possibility to do accurate timing!\n"
 #endif
-  if(lsb_data->rec_enabled) lsb_data->recs.back().toverhead = lsb_data->tlast-tstart;
+  if(lsb_data->rec_enabled) lsb_data->recs.back().toverhead = tlast-tstart;
+  if (reset) lsb_data->tlast = tlast;
   return measure;
 #ifdef _OPENMP
 }
