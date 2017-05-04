@@ -9,7 +9,7 @@
 
 #include <stdint.h>
 
-
+#define HAVE_MPI_H
 
 
 
@@ -60,12 +60,12 @@ double LSB_Wait(double microseconds);
 
 
 #ifndef HAVE_MPI_H
-#define MPI_Comm void *
-#endif
 
 void LSB_Sync_init(MPI_Comm comm, double window);
 void LSB_Sync_reset(double window);
 double LSB_Sync();
+
+#endif
 
 
 
