@@ -46,11 +46,11 @@ void LSB_Sync_reset(double window){
 double LSB_Sync() {
   return hca_start_synchronization()*1e6;
 }
-#else
 
+/*
 void LSB_Sync_init(MPI_Comm comm, double window) { printf("Error: This feature needs MPI support\n"); exit(-1); }
 void LSB_Sync_reset(double window) { printf("Error: This feature needs MPI support\n"); exit(-1); } 
 double LSB_Sync() { printf("Error: This feature needs MPI support\n"); exit(-1); } 
- 
+*/
 
 #endif

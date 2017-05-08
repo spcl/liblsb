@@ -59,7 +59,7 @@ void LSB_Fold(unsigned int id, lsb_op_t op, double * result);
 double LSB_Wait(double microseconds);
 
 
-#ifndef HAVE_MPI_H
+#ifdef HAVE_MPI_H
 
 void LSB_Sync_init(MPI_Comm comm, double window);
 void LSB_Sync_reset(double window);

@@ -26,6 +26,9 @@
 
 #include "../liblsb.h"
 
+#if defined(HAVE_SYNC) && defined(HAVE_MPI)
+
+
 typedef struct {
     long n_rep; /* --repetitions */
     double window_size_sec; /* --window-size */
@@ -55,4 +58,5 @@ void hca_print_sync_parameters(void);
 
 int my_pow_2(int exp);
 
+#endif
 #endif /* HCA_SYNC_H_ */
