@@ -522,7 +522,7 @@ void LSB_Flush() {
 
 
       fprintf(fp, "%i ", lsb_data->recs[i].id);
-      fprintf(fp, "%llu ", lsb_data->recs[i].tduration);
+      fprintf(fp, "%f ", lsb_data->recs[i].tduration);
       fprintf(fp, "%lu ", lsb_data->recs[i].toverhead);
      
 
