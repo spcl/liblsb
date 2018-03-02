@@ -784,11 +784,12 @@ static void write_host_information(FILE *fd) {
  * @param autoprof_interval automatic (SIGALRM) profiling interval, set 0 to disable automatic profiling
  */
 void LSB_Init(const char* projname, int autoprof_interval /* in ms, off if 0 */) {
-  const char *fname = projname;
+  const char *fname = projname, *dir;
   char name[1024];
   int rev;
   struct stat st;
   char *env;
+
 
   lsb_data = new(LSB_Data);
   lsb_data->rec_enabled = 1;
@@ -797,17 +798,15 @@ void LSB_Init(const char* projname, int autoprof_interval /* in ms, off if 0 */)
   lsb_data->next = 0;
   lsb_data->group_ptr=0;
 
+  dir = getenv("LSB_OUTDIR");
+  if(dir == NULL) dir = ".";
+
+ 
   env = getenv("LSB_OUTFILE");
   if(env != NULL) fname = env;
-  snprintf(name, 1023, "lsb.%s", fname);
-  rev = 0;
-  while(stat(name, &st) != -1) { // path exists!
-    snprintf(name, 1023, "lsb.%s-%i", fname, ++rev);
-  }
 
 
-
-  int r;
+  int r; /*rank*/
 #ifdef HAVE_MPI
   MPI_Comm_rank(MPI_COMM_WORLD, &r);
   MPI_Comm_size(MPI_COMM_WORLD, &lsb_data->p);
@@ -821,10 +820,10 @@ void LSB_Init(const char* projname, int autoprof_interval /* in ms, off if 0 */)
   lsb_data->write_header=1;
 
   if(r > 0) lsb_data->print = 0;
-  snprintf(name, 1023, "lsb.%s.r%i", fname, r);
+  snprintf(name, 1023, "%s/lsb.%s.r%i", dir, fname, r);
   rev = 0;
   while(stat(name, &st) != -1) { // path exists!
-    snprintf(name, 1023, "lsb.%s.r%i-%i", fname, r, ++rev);
+    snprintf(name, 1023, "%s/lsb.%s.r%i-%i", dir, fname, r, ++rev);
   }
 
   lsb_data->write_file=1;
