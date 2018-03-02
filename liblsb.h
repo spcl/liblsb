@@ -9,7 +9,7 @@
 
 #include <stdint.h>
 
-
+#define HAVE_MPI_H
 
 
 
@@ -33,9 +33,16 @@
 extern "C" {
 #endif
 
+#define LSB_ANY -1
+
 typedef enum { LSB_SUM=0, LSB_COUNT, LSB_MEDIAN, LSB_MAX, LSB_MIN} lsb_op_t;
 
 
+struct LSB_Group{
+    int start, stop;
+};
+
+typedef struct LSB_Group LSB_Group_t;
 
 void LSB_Init(const char *projname, int autoprof_interval);
 void LSB_Finalize();
@@ -56,7 +63,11 @@ void LSB_Res();
 void LSB_Rec_enable();
 void LSB_Rec_disable();
 void LSB_Fold(unsigned int id, lsb_op_t op, double * result);
+void LSB_Group_Fold(LSB_Group_t g, unsigned int id, lsb_op_t op, double * result);
 double LSB_Wait(double microseconds);
+
+void LSB_Group_Begin(LSB_Group_t *group);
+void LSB_Group_End(LSB_Group_t *group);
 
 
 #ifdef HAVE_MPI_H

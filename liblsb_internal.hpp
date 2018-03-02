@@ -155,7 +155,8 @@ typedef struct {
   char lsb_disabled; ///< true if lsb is completely disabled
   int write_header;
   int next;
-  
+  int group_ptr; //< starting index of the current group
+ 
 #if defined(SYNC_WINDOW) && defined(HAVE_MPI)
   double sync_window;
   MPI_Comm sync_comm;

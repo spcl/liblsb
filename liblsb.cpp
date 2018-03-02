@@ -105,36 +105,17 @@ double LSB_Wait(double microseconds){
     return current - start;
 }
 
-/*
-void LSB_Rec_ints(unsigned int id, int int1, int int2) {
-  CHK_DISABLED;
-#ifdef _OPENMP
-#pragma omp master
-{
-#endif
-  t_recint rec = {id,int1,int2};
-  if(lsb_data->rec_enabled)  lsb_data->recints.push_back(rec);
-#ifdef _OPENMP
-}
-#endif
+
+void LSB_Group_Begin(LSB_Group_t *group){
+    group->start = lsb_data->recs.size();
+    group->stop = -1;
 }
 
-void LSB_Rec_intdbl(unsigned int id, int int1, double dbl) {
-  CHK_DISABLED;
-#ifdef _OPENMP
-#pragma omp master
-{
-#endif
-  t_recintdbl rec = {id,int1,dbl};
-  if(lsb_data->rec_enabled) lsb_data->recintdbl.push_back(rec);
-#ifdef _OPENMP
+void LSB_Group_End(LSB_Group_t *group){
+    group->stop = lsb_data->recs.size() - 1;
 }
-#endif
-}
-*/
 
-
-void LSB_Fold(unsigned int id, lsb_op_t op, double * result){
+void _LSB_Fold(unsigned int id, int start, int stop, lsb_op_t op, double * result){
 
 
     double res=-1;
@@ -142,9 +123,9 @@ void LSB_Fold(unsigned int id, lsb_op_t op, double * result){
     int j=0;
        
 
-    for (int i=0; i<lsb_data->recs.size(); i++){
+    for (int i=start; i<stop; i++){
 
-        if (lsb_data->recs[i].id != id) continue;
+        if (id!=LSB_ANY && lsb_data->recs[i].id != id) continue;
 
         switch (op){
             case LSB_SUM:
@@ -179,6 +160,18 @@ void LSB_Fold(unsigned int id, lsb_op_t op, double * result){
     *result = res;
 
 }
+
+void LSB_Fold(unsigned int id, lsb_op_t op, double * result){
+    _LSB_Fold(id, 0, lsb_data->recs.size(), op, result);
+}
+
+void LSB_Group_Fold(LSB_Group g, unsigned int id, lsb_op_t op, double * result){
+    if (g.start < 0 || g.start > lsb_data->recs.size()) { *result=-1; return; }
+    if (g.stop!=-1 && (g.stop<0 || g.stop > lsb_data->recs.size())) { *result=-1; return; }
+    
+    _LSB_Fold(id, g.start, (g.stop!=-1) ? g.stop : lsb_data->recs.size(), op, result);
+}
+
 
 double LSB_Rec(unsigned int id){
    double res = LSB_Stop(id, 1);
@@ -673,6 +666,7 @@ void LSB_Flush() {
 
 
   lsb_data->next=0;
+  lsb_data->group_ptr=0;
   //printf("flush: start clear\n");
   lsb_data->recs.clear();
   lsb_data->recints.clear();
@@ -801,6 +795,7 @@ void LSB_Init(const char* projname, int autoprof_interval /* in ms, off if 0 */)
   lsb_data->lsb_disabled = 0;
   lsb_data->print=1;
   lsb_data->next = 0;
+  lsb_data->group_ptr=0;
 
   env = getenv("LSB_OUTFILE");
   if(env != NULL) fname = env;
