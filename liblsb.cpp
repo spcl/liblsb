@@ -197,6 +197,7 @@ double LSB_Check(unsigned int id){
 double LSB_Stop(unsigned int id, unsigned int reset) {
   if (lsb_data->lsb_disabled) return -1;
   //CHK_DISABLED;
+  double measure=0;
 #ifdef _OPENMP
 #pragma omp master
 {
@@ -236,7 +237,7 @@ double LSB_Stop(unsigned int id, unsigned int reset) {
 #error "No possibility to do accurate timing!\n"
 #endif
   
-  double measure = tstart-lsb_data->tlast;
+  measure = tstart-lsb_data->tlast;
 #if defined HAVE_PAPI
   t_rec rec = {values[0], values[1], measure, 0, id};
 #elif defined HAVE_LIKWID
@@ -292,10 +293,10 @@ double LSB_Stop(unsigned int id, unsigned int reset) {
 #endif
   if(lsb_data->rec_enabled) lsb_data->recs.back().toverhead = tlast-tstart;
   if (reset) lsb_data->tlast = tlast;
-  return measure;
 #ifdef _OPENMP
 }
 #endif
+  return measure;
 }
 
 /**
