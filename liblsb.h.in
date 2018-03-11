@@ -4,30 +4,19 @@
 * found in the LICENSE file.
 */
 
-
-//#include <config.h>
-
 #include <stdint.h>
 
 @HAVE_MPI_DEF@
-
-
 
 #ifndef LIBLSB_H_
 #define LIBLSB_H_
 #define SYNC_WINDOW
 
-//#define SYNC_WINDOW
-
-/*#ifndef HAVE_MPI_IN
-#undef SYNC_WINDOW
-#endif
-*/
+#define LSB_ANY -1
 
 #ifdef HAVE_MPI_H
 #include <mpi.h>
 #endif
-
 
 #ifdef __cplusplus
 extern "C" {
@@ -35,7 +24,11 @@ extern "C" {
 
 typedef enum { LSB_SUM=0, LSB_COUNT, LSB_MEDIAN, LSB_MAX, LSB_MIN} lsb_op_t;
 
+struct LSB_Group{
+    int start, stop;
+};
 
+typedef struct LSB_Group LSB_Group_t;
 
 void LSB_Init(const char *projname, int autoprof_interval);
 void LSB_Finalize();
