@@ -76,8 +76,13 @@ void LSB_Res() {
 }
 
 double LSB_Wait(double microseconds){
-
     double start, current;
+
+#ifdef _OPENMP
+#pragma omp master
+{
+#endif
+
 	unsigned long long ticks;
 
 #if defined HAVE_PAPI
@@ -102,8 +107,13 @@ double LSB_Wait(double microseconds){
 #endif       
     } 
    
-    return current - start;
+#ifdef _OPENMP
 }
+#endif
+    return current - start;
+
+}
+
 
 /*
 void LSB_Rec_ints(unsigned int id, int int1, int int2) {
@@ -135,7 +145,10 @@ void LSB_Rec_intdbl(unsigned int id, int int1, double dbl) {
 
 
 void LSB_Fold(unsigned int id, lsb_op_t op, double * result){
-
+#ifdef _OPENMP
+#pragma omp master
+{
+#endif
 
     double res=-1;
     std::vector<double> measures;
@@ -177,22 +190,48 @@ void LSB_Fold(unsigned int id, lsb_op_t op, double * result){
     }
 
     *result = res;
-
+#ifdef _OPENMP
+}
+#endif
 }
 
 double LSB_Rec(unsigned int id){
-   double res = LSB_Stop(id, 1);
+    double res=0;
+#ifdef _OPENMP
+#pragma omp master
+{
+#endif
+   res = LSB_Stop(id, 1);
    lsb_data->next = lsb_data->recs.size();
+#ifdef _OPENMP
+}
+#endif
    return res;
+
 }
 
 void LSB_Next(){
+#ifdef _OPENMP
+#pragma omp master
+{
+#endif
    lsb_data->next = lsb_data->recs.size();
+#ifdef _OPENMP
+}
+#endif
 }
 
 double LSB_Check(unsigned int id){
-   double res = LSB_Stop(id, 0);
+    double res=0;
+#ifdef _OPENMP
+#pragma omp master
+{
+#endif
+   res = LSB_Stop(id, 0);
    lsb_data->next = lsb_data->recs.size();
+#ifdef _OPENMP
+}
+#endif
    return res;
 }
 
@@ -202,6 +241,7 @@ double LSB_Check(unsigned int id){
  * @param id user-defined kernel id
  */
 double LSB_Stop(unsigned int id, unsigned int reset) {
+  double measure=0;
   if (lsb_data->lsb_disabled) return -1;
   //CHK_DISABLED;
 #ifdef _OPENMP
@@ -243,7 +283,7 @@ double LSB_Stop(unsigned int id, unsigned int reset) {
 #error "No possibility to do accurate timing!\n"
 #endif
   
-  double measure = tstart-lsb_data->tlast;
+  measure = tstart-lsb_data->tlast;
 #if defined HAVE_PAPI
   t_rec rec = {values[0], values[1], measure, 0, id};
 #elif defined HAVE_LIKWID
@@ -299,10 +339,10 @@ double LSB_Stop(unsigned int id, unsigned int reset) {
 #endif
   if(lsb_data->rec_enabled) lsb_data->recs.back().toverhead = tlast-tstart;
   if (reset) lsb_data->tlast = tlast;
-  return measure;
 #ifdef _OPENMP
 }
 #endif
+  return measure;
 }
 
 /**
@@ -790,11 +830,18 @@ static void write_host_information(FILE *fd) {
  * @param autoprof_interval automatic (SIGALRM) profiling interval, set 0 to disable automatic profiling
  */
 void LSB_Init(const char* projname, int autoprof_interval /* in ms, off if 0 */) {
+
   const char *fname = projname;
   char name[1024];
   int rev;
   struct stat st;
   char *env;
+
+#ifdef _OPENMP
+#pragma omp master
+{
+#endif
+
 
   lsb_data = new(LSB_Data);
   lsb_data->rec_enabled = 1;
@@ -867,8 +914,18 @@ void LSB_Init(const char* projname, int autoprof_interval /* in ms, off if 0 */)
       }
     }
   }
+#ifdef _OPENMP
+}
+#pragma omp barrier
+#endif
 
   CHK_DISABLED;
+
+#ifdef _OPENMP
+#pragma omp master
+{
+#endif
+
 
   //printf("printing enabled: %i\n", lsb_data->write_file);
   if(lsb_data->write_file==1) {
@@ -1002,7 +1059,10 @@ void LSB_Init(const char* projname, int autoprof_interval /* in ms, off if 0 */)
 #else
 #error "No possibility to do accurate timing!\n" 
 #endif 
-  
+ 
+#ifdef _OPENMP
+}
+#endif
 }
 
 /**

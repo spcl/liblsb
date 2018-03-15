@@ -9,7 +9,7 @@
 
 #include <stdint.h>
 
-
+#define HAVE_MPI_H
 
 
 
