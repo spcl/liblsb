@@ -4,12 +4,7 @@
 * found in the LICENSE file.
 */
 
-
-//#include <config.h>
-
 #include <stdint.h>
-
-#define HAVE_MPI_H
 
 
 
@@ -17,26 +12,17 @@
 #define LIBLSB_H_
 #define SYNC_WINDOW
 
-//#define SYNC_WINDOW
-
-/*#ifndef HAVE_MPI_IN
-#undef SYNC_WINDOW
-#endif
-*/
+#define LSB_ANY -1
 
 #ifdef HAVE_MPI_H
 #include <mpi.h>
 #endif
 
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#define LSB_ANY -1
-
 typedef enum { LSB_SUM=0, LSB_COUNT, LSB_MEDIAN, LSB_MAX, LSB_MIN} lsb_op_t;
-
 
 struct LSB_Group{
     int start, stop;
@@ -63,11 +49,7 @@ void LSB_Res();
 void LSB_Rec_enable();
 void LSB_Rec_disable();
 void LSB_Fold(unsigned int id, lsb_op_t op, double * result);
-void LSB_Group_Fold(LSB_Group_t g, unsigned int id, lsb_op_t op, double * result);
 double LSB_Wait(double microseconds);
-
-void LSB_Group_Begin(LSB_Group_t *group);
-void LSB_Group_End(LSB_Group_t *group);
 
 
 #ifdef HAVE_MPI_H
