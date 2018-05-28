@@ -76,8 +76,13 @@ void LSB_Res() {
 }
 
 double LSB_Wait(double microseconds){
-
     double start, current;
+
+#ifdef _OPENMP
+#pragma omp master
+{
+#endif
+
 	unsigned long long ticks;
 
 #if defined HAVE_PAPI
@@ -102,21 +107,18 @@ double LSB_Wait(double microseconds){
 #endif       
     } 
    
+#ifdef _OPENMP
+}
+#endif
     return current - start;
-}
 
-
-void LSB_Group_Begin(LSB_Group_t *group){
-    group->start = lsb_data->recs.size();
-    group->stop = -1;
-}
-
-void LSB_Group_End(LSB_Group_t *group){
-    group->stop = lsb_data->recs.size() - 1;
 }
 
 void _LSB_Fold(unsigned int id, int start, int stop, lsb_op_t op, double * result){
-
+#ifdef _OPENMP
+#pragma omp master
+{
+#endif
 
     double res=-1;
     std::vector<double> measures;
@@ -158,7 +160,9 @@ void _LSB_Fold(unsigned int id, int start, int stop, lsb_op_t op, double * resul
     }
 
     *result = res;
-
+#ifdef _OPENMP
+}
+#endif
 }
 
 void LSB_Fold(unsigned int id, lsb_op_t op, double * result){
@@ -174,18 +178,42 @@ void LSB_Group_Fold(LSB_Group g, unsigned int id, lsb_op_t op, double * result){
 
 
 double LSB_Rec(unsigned int id){
-   double res = LSB_Stop(id, 1);
+    double res=0;
+#ifdef _OPENMP
+#pragma omp master
+{
+#endif
+   res = LSB_Stop(id, 1);
    lsb_data->next = lsb_data->recs.size();
+#ifdef _OPENMP
+}
+#endif
    return res;
+
 }
 
 void LSB_Next(){
+#ifdef _OPENMP
+#pragma omp master
+{
+#endif
    lsb_data->next = lsb_data->recs.size();
+#ifdef _OPENMP
+}
+#endif
 }
 
 double LSB_Check(unsigned int id){
-   double res = LSB_Stop(id, 0);
+    double res=0;
+#ifdef _OPENMP
+#pragma omp master
+{
+#endif
+   res = LSB_Stop(id, 0);
    lsb_data->next = lsb_data->recs.size();
+#ifdef _OPENMP
+}
+#endif
    return res;
 }
 
@@ -195,9 +223,9 @@ double LSB_Check(unsigned int id){
  * @param id user-defined kernel id
  */
 double LSB_Stop(unsigned int id, unsigned int reset) {
+  double measure=0;
   if (lsb_data->lsb_disabled) return -1;
   //CHK_DISABLED;
-  double measure=0;
 #ifdef _OPENMP
 #pragma omp master
 {
@@ -453,29 +481,6 @@ void LSB_Flush() {
       fprintf(fp, "\n");
     }
 
-    //printf("printing ints\n");
-    if(lsb_data->recints.size()) {
-      // print all ints
-      fprintf(fp, "# printing integer list, %i records\n  %8s %8s %8s\n", (int)lsb_data->recints.size(), "id", "int1", "int2");
-      for(unsigned int i=0; i < lsb_data->recints.size(); ++i) {
-        fprintf(fp, "  %8i ", lsb_data->recints[i].id);
-        fprintf(fp, "%8i ", lsb_data->recints[i].int1);
-        fprintf(fp, "%8i ", lsb_data->recints[i].int2);
-        fprintf(fp, "\n");
-      }
-    }
-    //printf("end printing ints\nprinting dbls");
-
-    if(lsb_data->recintdbl.size()) {
-      // print all ints
-      fprintf(fp, "# printing integer/double list, %i records\n  %8s %8s %16s\n", (int)lsb_data->recintdbl.size(), "id", "int1", "double");
-      for(unsigned int i=0; i < lsb_data->recintdbl.size(); ++i) {
-        fprintf(fp, "  %8i ", lsb_data->recintdbl[i].id);
-        fprintf(fp, "%8i ", lsb_data->recintdbl[i].int1);
-        fprintf(fp, "%16f ", lsb_data->recintdbl[i].dbl);
-        fprintf(fp, "\n");
-      }
-    }
     
     //printf("end pretty printing\n");
   } else if ((style == EFFICIENT) && (lsb_data->write_file==1)) {
@@ -543,27 +548,6 @@ void LSB_Flush() {
       fprintf(fp, "\n");
     }
 
-    if(lsb_data->recints.size()) {
-      // print all ints
-      fprintf(fp, "# printing integer list, %i records\n  %8s %8s %8s\n", (int)lsb_data->recints.size(), "id", "int1", "int2");
-      for(unsigned int i=0; i < lsb_data->recints.size(); ++i) {
-        fprintf(fp, "%i ", lsb_data->recints[i].id);
-        fprintf(fp, "%i ", lsb_data->recints[i].int1);
-        fprintf(fp, "%i ", lsb_data->recints[i].int2);
-        fprintf(fp, "\n");
-      }
-    }
-
-    if(lsb_data->recintdbl.size()) {
-      // print all ints
-      fprintf(fp, "# printing integer/double list, %i records\n  %8s %8s %16s\n", (int)lsb_data->recintdbl.size(), "id", "int1", "double");
-      for(unsigned int i=0; i < lsb_data->recintdbl.size(); ++i) {
-        fprintf(fp, "%i ", lsb_data->recintdbl[i].id);
-        fprintf(fp, "%i ", lsb_data->recintdbl[i].int1);
-        fprintf(fp, "%f ", lsb_data->recintdbl[i].dbl);
-        fprintf(fp, "\n");
-      }
-    }
   } else if (style == ACCUMULATED) { /* TODO: extend with rparams */
 #ifdef HAVE_MPI
     MPI_Comm comm = MPI_COMM_WORLD;
@@ -670,8 +654,6 @@ void LSB_Flush() {
   lsb_data->group_ptr=0;
   //printf("flush: start clear\n");
   lsb_data->recs.clear();
-  lsb_data->recints.clear();
-  lsb_data->recintdbl.clear();
   lsb_data->recparams.clear();
     
   /* Add last known value of the parameters */ 
@@ -736,7 +718,7 @@ void LSB_Finalize() {
 
   if(lsb_data->print) printf("******* LSB_Finalize *******\n");
 
-  if(lsb_data->recs.size() > 0 || lsb_data->recints.size() || lsb_data->recintdbl.size()) LSB_Flush();
+  if(lsb_data->recs.size() > 0) LSB_Flush();
 
   if(lsb_data->write_file==1) fclose(lsb_data->outfd);
 #ifdef _OPENMP
@@ -786,11 +768,16 @@ static void write_host_information(FILE *fd) {
  */
 void LSB_Init(const char* projname, int autoprof_interval /* in ms, off if 0 */) {
   const char *fname = projname, *dir;
+
   char name[1024];
   int rev;
   struct stat st;
   char *env;
 
+#ifdef _OPENMP
+#pragma omp master
+{
+#endif
 
   lsb_data = new(LSB_Data);
   lsb_data->rec_enabled = 1;
@@ -862,8 +849,18 @@ void LSB_Init(const char* projname, int autoprof_interval /* in ms, off if 0 */)
       }
     }
   }
+#ifdef _OPENMP
+}
+#pragma omp barrier
+#endif
 
   CHK_DISABLED;
+
+#ifdef _OPENMP
+#pragma omp master
+{
+#endif
+
 
   //printf("printing enabled: %i\n", lsb_data->write_file);
   if(lsb_data->write_file==1) {
@@ -997,7 +994,10 @@ void LSB_Init(const char* projname, int autoprof_interval /* in ms, off if 0 */)
 #else
 #error "No possibility to do accurate timing!\n" 
 #endif 
-  
+ 
+#ifdef _OPENMP
+}
+#endif
 }
 
 /**

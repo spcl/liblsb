@@ -88,18 +88,6 @@ typedef struct {
   unsigned int id; ///< the user-specified kernel id
 } t_rec;
 
-typedef struct {
-  unsigned int id; ///< the user-specified kernel id
-  int int1; ///< integer 1
-  int int2; ///< integer 2
-} t_recint;
-
-typedef struct {
-  unsigned int id; ///< the user-specified kernel id
-  int int1; ///< integer
-  double dbl; ///< double 
-} t_recintdbl;
-
 
 typedef enum{
     LSB_INT=0, LSB_DBL, LSB_STR, LSB_LNG
@@ -131,8 +119,6 @@ typedef struct{
  */
 typedef struct {
   VECTOR_TYPE<t_rec> recs; ///< records
-  VECTOR_TYPE<t_recint> recints; ///< recorded integers
-  VECTOR_TYPE<t_recintdbl> recintdbl; ///< recorded integer/double pairs
   VECTOR_TYPE<t_recparam> recparams;
 
 #ifdef HAVE_PAPI
@@ -170,7 +156,6 @@ double lsb_median_from_sorted_data (const double sorted_data[], const size_t str
 double lsb_quantile_from_sorted_data (const double sorted_data[], const size_t stride, const size_t n, const double f);
 int lsb_fit_linear (const double *x, const size_t xstride, const double *y, const size_t ystride, const size_t n, double *c0, double *c1, double *cov_00, double *cov_01, double *cov_11, double *sumsq);
 double lsb_mean (const double data[], const size_t stride, const size_t size);
-
 
 double min(double a, double b);
 double max(double a, double b);
