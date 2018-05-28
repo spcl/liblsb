@@ -4,7 +4,7 @@ TESTSOURCES = lvect_bench.cpp lvect_bench_nompi.cpp test_synch.cpp #test_cxx.cpp
 # set test specific compiler and linker options
 TESTCXXFLAGS = -I$(top_srcdir) @PAPI_CFLAGS@
 TESTLDFLAGS  = @PAPI_LDFLAGS@
-TESTLIBS     = $(top_builddir)/.libs/liblsb-0.2.a
+TESTLIBS     = $(top_builddir)/.libs/liblsb.a
 
 # this ensure that test cases and verified outputs will be distributed
 EXTRA_DIST = $(TESTSOURCES) 

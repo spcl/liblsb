@@ -17,7 +17,16 @@
 
 #include <algorithm>
 
+#ifdef HAVE_PAPI
+#define PAPI_ENV_NAME_LEN 1024
+#endif
+
 LSB_Data *lsb_data;
+
+#ifdef HAVE_PAPI
+/* trash for papi counters */
+static std::vector<long long> papictrs_trash; //< PAPI counters values
+#endif
 
 #ifdef HAVE_LIKWID
 std::vector<long long> PMvalues(10);
@@ -39,8 +48,7 @@ void LSB_Res() {
 {
 #endif
 #if defined HAVE_PAPI 
-  std::vector<long long> values(2);
-  PAPI_stop(lsb_data->eventset, &values[0]);
+  PAPI_stop(lsb_data->eventset, &papictrs_trash[0]);
   lsb_data->tlast = PAPI_get_real_usec();
   PAPI_start(lsb_data->eventset);
 #elif defined HAVE_LIKWID
@@ -224,6 +232,7 @@ double LSB_Check(unsigned int id){
  */
 double LSB_Stop(unsigned int id, unsigned int reset) {
   double measure=0;
+  t_rec rec;
   if (lsb_data->lsb_disabled) return -1;
   //CHK_DISABLED;
 #ifdef _OPENMP
@@ -233,9 +242,7 @@ double LSB_Stop(unsigned int id, unsigned int reset) {
   double tstart, tlast; // epoch duration and function start time
 #if defined HAVE_PAPI
   tstart  = PAPI_get_real_usec();
-
-  std::vector<long long> values(2);
-  PAPI_stop(lsb_data->eventset, &values[0]);
+  PAPI_stop(lsb_data->eventset, &rec.papictrs[0]);
 #elif defined HAVE_LIKWID
     //std::vector<long long> values(10);
     int cpu_id;
@@ -267,13 +274,15 @@ double LSB_Stop(unsigned int id, unsigned int reset) {
   
   measure = tstart-lsb_data->tlast;
 #if defined HAVE_PAPI
-  t_rec rec = {values[0], values[1], measure, 0, id};
+  rec.tduration = measure;
+  rec.toverhead = 0;
+  rec.id = id;
 #elif defined HAVE_LIKWID
-  t_rec rec = {PMvalues[0], PMvalues[1], PMvalues[2], PMvalues[3], PMvalues[4], \
+  rec = {PMvalues[0], PMvalues[1], PMvalues[2], PMvalues[3], PMvalues[4], \
                PMvalues[5], PMvalues[6], PMvalues[7], PMvalues[8], PMvalues[9], \
                measure, 0, id};
 #else
-  t_rec rec = {measure, 0, id};
+  rec = {measure, 0, id};
 #endif
   if(lsb_data->rec_enabled) lsb_data->recs.push_back(rec);
 
@@ -417,10 +426,11 @@ void LSB_Flush() {
       fprintf(fp, " %8s %12s %12s ", "id", "time", "overhead");
     
 #ifdef HAVE_PAPI
-      char p1[1024], p2[1024];
-      PAPI_event_code_to_name(lsb_data->papi1, p1);
-      PAPI_event_code_to_name(lsb_data->papi2, p2);
-      fprintf(fp, "%16s %16s", p1, p2);
+      for (int pc_idx = 0; pc_idx < lsb_data->num_papi_ctrs; pc_idx++){
+        char papi_name[1024];
+        PAPI_event_code_to_name(lsb_data->papi_ctrs_ids[pc_idx], papi_name);
+        fprintf(fp, "%16s", papi_name);
+      }
 #endif
 #ifdef HAVE_UNWIND
       fprintf(fp, " #ips ip-list");
@@ -457,8 +467,11 @@ void LSB_Flush() {
       //printf("end printing data111\n");
   #ifdef HAVE_PAPI
       //printf("have papi\n");
-      fprintf(fp, "%16lli ", lsb_data->recs[i].papictr1);
-      fprintf(fp, "%16lli ", lsb_data->recs[i].papictr2);
+
+      for (int j=0; j<lsb_data->num_papi_ctrs; j++){
+        fprintf(fp, "%16lli ", lsb_data->recs[i].papictrs[j]);
+      }
+
   #endif
   #ifdef HAVE_LIKWID
       //printf("have likwid\n");
@@ -491,10 +504,11 @@ void LSB_Flush() {
     }
 
 #ifdef HAVE_PAPI
-    char p1[1024], p2[1024];
-    PAPI_event_code_to_name(lsb_data->papi1, p1);
-    PAPI_event_code_to_name(lsb_data->papi2, p2);
-    fprintf(fp, "%s %s", p1, p2);
+    for (int pc_idx = 0; pc_idx < lsb_data->num_papi_ctrs; pc_idx++){
+      char papi_name[1024];
+      PAPI_event_code_to_name(lsb_data->papi_ctrs_ids[pc_idx], papi_name);
+      fprintf(fp, "%s", papi_name);
+    }
 #endif
 #ifdef HAVE_UNWIND
     fprintf(fp, " #ips ip-list");
@@ -526,8 +540,11 @@ void LSB_Flush() {
      
 
   #ifdef HAVE_PAPI
-      fprintf(fp, "%lli ", lsb_data->recs[i].papictr1);
-      fprintf(fp, "%lli ", lsb_data->recs[i].papictr2);
+
+      for (int j=0; j<lsb_data->num_papi_ctrs; j++){
+        fprintf(fp, "%lli ", lsb_data->recs[i].papictrs[j]);
+      }
+
   #endif
   #ifdef HAVE_LIKWID
       fprintf(fp, "%lli ", lsb_data->recs[i].PMcounter0);
@@ -561,22 +578,27 @@ void LSB_Flush() {
       std::vector<long long> my_duration(size); // convert to long long for MPI :-(
       std::vector<long> my_overhead(size); // convert to long for MPI :-(
 #ifdef HAVE_PAPI
-      std::vector<long long> my_papictr1(size), my_papictr2(size); // convert to long long for MPI :-(
+      std::vector<long long> my_papictrs(size*lsb_data->num_papi_ctrs); // convert to long long for MPI :-(
 #endif
       for(int i=0; i<size; ++i) {
         my_duration[i] = lsb_data->recs[i].tduration;
         my_overhead[i] = lsb_data->recs[i].toverhead;
+     }
+
 #ifdef HAVE_PAPI
-        my_papictr1[i] = lsb_data->recs[i].papictr1;
-        my_papictr2[i] = lsb_data->recs[i].papictr2;
-#endif
+      for (int i=0; i<size; i++){
+        for (int j=0; j<lsb_data->num_papi_ctrs; j++){
+          my_papictrs[i*size + j] = lsb_data->recs[i].papictrs[j];
+        }
       }
+#endif
 
       std::vector<long long> max_duration(size), min_duration(size), avg_duration(size);
       std::vector<long> max_overhead(size), min_overhead(size), avg_overhead(size);
 #ifdef HAVE_PAPI
-      std::vector<long long> max_papictr1(size), max_papictr2(size), min_papictr1(size),
-                             min_papictr2(size), avg_papictr1(size), avg_papictr2(size);
+      uint32_t papi_size = size * lsb_data->num_papi_ctrs;
+      std::vector<long long> max_papictrs(papi_size), min_papictrs(papi_size),
+                             avg_papictrs(papi_size);
 #endif
       MPI_Allreduce(&my_overhead[0],&min_overhead[0],size,MPI_LONG,MPI_MIN,comm);
       MPI_Allreduce(&my_overhead[0],&max_overhead[0],size,MPI_LONG,MPI_MAX,comm);
@@ -589,25 +611,21 @@ void LSB_Flush() {
       for(int i=0; i<size; ++i) avg_duration[i]/= lsb_data->p;
 
 #ifdef HAVE_PAPI
-      MPI_Allreduce(&my_papictr1[0],&min_papictr1[0],size,MPI_LONG_LONG,MPI_MIN,comm);
-      MPI_Allreduce(&my_papictr1[0],&max_papictr1[0],size,MPI_LONG_LONG,MPI_MAX,comm);
-      MPI_Allreduce(&my_papictr1[0],&avg_papictr1[0],size,MPI_LONG_LONG,MPI_SUM,comm);
-      for(int i=0; i<size; ++i) avg_papictr1[i]/= lsb_data->p;
-
-      MPI_Allreduce(&my_papictr2[0],&min_papictr2[0],size,MPI_LONG_LONG,MPI_MIN,comm);
-      MPI_Allreduce(&my_papictr2[0],&max_papictr2[0],size,MPI_LONG_LONG,MPI_MAX,comm);
-      MPI_Allreduce(&my_papictr2[0],&avg_papictr2[0],size,MPI_LONG_LONG,MPI_SUM,comm);
-      for(int i=0; i<size; ++i) avg_papictr2[i]/= lsb_data->p;
+      MPI_Allreduce(&my_papictrs[0],&min_papictrs[0],papi_size,MPI_LONG_LONG,MPI_MIN,comm);
+      MPI_Allreduce(&my_papictrs[0],&max_papictrs[0],papi_size,MPI_LONG_LONG,MPI_MAX,comm);
+      MPI_Allreduce(&my_papictrs[0],&avg_papictrs[0],papi_size,MPI_LONG_LONG,MPI_SUM,comm);
+      for(int i=0; i<papi_size; ++i) avg_papictrs[i]/= lsb_data->p;
 #endif
 
       if(lsb_data->write_file==1) {
         fprintf(fp, "# accumulated output format\n");
         fprintf(fp, "%s %s - %s - ", "id", "time (min, avg, max)", "overhead (min, avg, max)");
 #ifdef HAVE_PAPI
-        char p1[1024], p2[1024];
-        PAPI_event_code_to_name(lsb_data->papi1, p1);
-        PAPI_event_code_to_name(lsb_data->papi2, p2);
-        fprintf(fp, "%s - %s", p1, p2);
+        for (auto it = lsb_data->papi_ctrs_ids.begin(); it != lsb_data->papi_ctrs_ids.end(); ++it){
+          char papi_name[1024];
+          PAPI_event_code_to_name(*it, papi_name);
+          fprintf(fp, "%s - ", papi_name);
+        }
 #endif
 #ifdef HAVE_UNWIND
         fprintf(fp, " #ips ip-list");
@@ -616,19 +634,22 @@ void LSB_Flush() {
       }
 
       // print all records
-      if(lsb_data->write_file==1) for(unsigned int i=0; i < size; ++i) {
-        fprintf(fp, "%i ", lsb_data->recs[i].id);
-        fprintf(fp, "%lli %lli %lli - ", min_duration[i], avg_duration[i], max_duration[i] );
-        fprintf(fp, "%li %li %li - ", min_overhead[i], avg_overhead[i], max_overhead[i]);
+      if(lsb_data->write_file==1){
+        for(unsigned int i=0; i < size; ++i) {
+          fprintf(fp, "%i ", lsb_data->recs[i].id);
+          fprintf(fp, "%lli %lli %lli - ", min_duration[i], avg_duration[i], max_duration[i] );
+          fprintf(fp, "%li %li %li - ", min_overhead[i], avg_overhead[i], max_overhead[i]);
 #ifdef HAVE_PAPI
-        fprintf(fp, "%lli %lli %lli - ", min_papictr1[i], avg_papictr1[i], max_papictr1[i]);
-        fprintf(fp, "%lli %lli %lli - ", min_papictr2[i], avg_papictr2[i], max_papictr2[i]);
+          for (int j=0; j<lsb_data->num_papi_ctrs; j++){
+            fprintf(fp, "%lli %lli %lli - ", min_papictrs[i*size + j], avg_papictrs[i*size + j], max_papictrs[i*size + j]);
+          }
+         
 #endif
 #ifdef HAVE_UNWIND
-        fprintf(fp, "%i ", (int)lsb_data->iptrace[i].size());
-        for(unsigned int j=0; j<lsb_data->iptrace[i].size(); ++j) fprintf(fp, "%lx ", lsb_data->iptrace[i][j]);
+          fprintf(fp, "%i ", (int)lsb_data->iptrace[i].size());
+          for(unsigned int j=0; j<lsb_data->iptrace[i].size(); ++j) fprintf(fp, "%lx ", lsb_data->iptrace[i][j]);
 #endif
-        fprintf(fp, "\n");
+          fprintf(fp, "\n");
       }
     }
 #else
@@ -877,25 +898,37 @@ void LSB_Init(const char* projname, int autoprof_interval /* in ms, off if 0 */)
   assert(PAPI_create_eventset(&lsb_data->eventset) == PAPI_OK);
 
   // define what to count! -- check "papi_event_chooser PRESET event1 event2"
-  env = getenv("LSB_PAPI1");
-  if(env != NULL) PAPI_event_name_to_code(env, &lsb_data->papi1);
-  else lsb_data->papi1 = PAPI_TOT_INS;
-  env = getenv("LSB_PAPI2");
-  if(env != NULL) PAPI_event_name_to_code(env, &lsb_data->papi2);
-  else lsb_data->papi2 = PAPI_TOT_CYC;
 
-  if(PAPI_add_event(lsb_data->eventset, lsb_data->papi1) != PAPI_OK) {
-    char p1[1024];
-    PAPI_event_code_to_name(lsb_data->papi1, p1);
-    if(lsb_data->print) printf("Adding PAPI counter 1 (%s) failed!\n", p1);
-    exit(11);
+  int papi_cnt = 1;
+  char papi_env_name[PAPI_ENV_NAME_LEN];
+  snprintf(papi_env_name, PAPI_ENV_NAME_LEN, "LSB_PAPI%i", papi_cnt);
+  env = getenv(papi_env_name);
+  while (env!=NULL){
+    int papi_code;
+
+    if (papi_cnt > MAX_PAPI_COUNTERS){
+        printf("Too many PAPI counters! (Max: %i)\n", MAX_PAPI_COUNTERS);
+        exit(11);
+    }
+
+    PAPI_event_name_to_code(env, &papi_code);
+    lsb_data->papi_ctrs_ids.push_back(papi_code);    
+
+    if(PAPI_add_event(lsb_data->eventset, papi_code) != PAPI_OK) {
+      char p1[1024];
+      PAPI_event_code_to_name(papi_code, p1);
+      if(lsb_data->print) printf("Adding PAPI counter 1 (%s) failed!\n", p1);
+      exit(11);
+    }
+
+    /* get the next PAPI counter */
+    papi_cnt++;
+    snprintf(papi_env_name, PAPI_ENV_NAME_LEN, "LSB_PAPI%i", papi_cnt);
+    env = getenv(papi_env_name);
   }
-  if(PAPI_add_event(lsb_data->eventset, lsb_data->papi2) != PAPI_OK) {
-    char p1[1024];
-    PAPI_event_code_to_name(lsb_data->papi1, p1);
-    if(lsb_data->print) printf("Adding PAPI counter 2 (%s) failed!\n", p1);
-    exit(11);
-  }
+  lsb_data->num_papi_ctrs = lsb_data->papi_ctrs_ids.size();
+
+
 #endif
 
 #ifdef HAVE_LIKWID

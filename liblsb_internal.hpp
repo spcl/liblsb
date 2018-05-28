@@ -62,14 +62,18 @@ extern "C" {
 }
 #endif
 
+#ifdef HAVE_PAPI
+// todo: make this a configurable parameter
+#define MAX_PAPI_COUNTERS 16
+#endif
+
 
 /**
  * a single record field to be inserted during each record call
  */
 typedef struct {
 #ifdef HAVE_PAPI
-  long long papictr1; ///< first PAPI counter values
-  long long papictr2; ///< second PAPI counter values
+  long long papictrs[MAX_PAPI_COUNTERS]; //< PAPI counters values
 #endif
 #ifdef HAVE_LIKWID
   long long PMcounter0; ///< likwid MSR counter values
@@ -123,7 +127,8 @@ typedef struct {
 
 #ifdef HAVE_PAPI
   int eventset; ///< PAPI eventset config
-  int papi1, papi2;
+  VECTOR_TYPE<int> papi_ctrs_ids;
+  int num_papi_ctrs; //< len(papi_ctrs_ids)
 #endif
 #ifdef HAVE_UNWIND
   VECTOR_TYPE< std::vector<long> > iptrace; ///< the instruction pointer values for the stack for each epoch
@@ -147,6 +152,7 @@ typedef struct {
   double sync_window;
   MPI_Comm sync_comm;
 #endif
+
 
 } LSB_Data;
 
