@@ -6,7 +6,7 @@
 
 #include <stdint.h>
 
-
+#define HAVE_MPI_H
 
 #ifndef LIBLSB_H_
 #define LIBLSB_H_

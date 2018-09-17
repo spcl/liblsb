@@ -621,9 +621,9 @@ void LSB_Flush() {
         fprintf(fp, "# accumulated output format\n");
         fprintf(fp, "%s %s - %s - ", "id", "time (min, avg, max)", "overhead (min, avg, max)");
 #ifdef HAVE_PAPI
-        for (auto it = lsb_data->papi_ctrs_ids.begin(); it != lsb_data->papi_ctrs_ids.end(); ++it){
+        for (int pc_idx = 0; pc_idx < lsb_data->num_papi_ctrs; pc_idx++){
           char papi_name[1024];
-          PAPI_event_code_to_name(*it, papi_name);
+          PAPI_event_code_to_name(lsb_data->papi_ctrs_ids[pc_idx], papi_name);
           fprintf(fp, "%s - ", papi_name);
         }
 #endif
@@ -650,6 +650,7 @@ void LSB_Flush() {
           for(unsigned int j=0; j<lsb_data->iptrace[i].size(); ++j) fprintf(fp, "%lx ", lsb_data->iptrace[i][j]);
 #endif
           fprintf(fp, "\n");
+        }
       }
     }
 #else
@@ -742,13 +743,14 @@ void LSB_Finalize() {
   if(lsb_data->recs.size() > 0) LSB_Flush();
 
   if(lsb_data->write_file==1) fclose(lsb_data->outfd);
-#ifdef _OPENMP
-}
-#endif
 #ifdef HAVE_LIKWID
   perfmon_stopCounters();
   msr_finalize();
 #endif
+#ifdef _OPENMP
+}
+#endif
+
 }
 
 /**
