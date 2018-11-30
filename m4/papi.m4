@@ -17,10 +17,12 @@ AC_DEFUN([LSB_WITH_PAPI],
         AC_MSG_NOTICE([PAPI support enabled])
 		AC_SUBST([PAPI_CFLAGS], [])
 		AC_SUBST([PAPI_LDFLAGS], [-lpapi])
+        LDFLAGS="${LDFLAGS} -lpapi"
+
         if test x${lsb_papi_path} != x; then
             CFLAGS="${CFLAGS} -I${lsb_papi_path}/include"
             CXXFLAGS="${CXXFLAGS} -I${lsb_papi_path}/include"
-            LDFLAGS="${LDFLAGS} -lpapi -L${lsb_papi_path}/lib -L${lsb_papi_path}/lib64"
+            LDFLAGS="-L${lsb_papi_path}/lib -L${lsb_papi_path}/lib64 ${LDFLAGS}"
 			AC_SUBST([PAPI_CFLAGS], [-I${lsb_papi_path}/include])
 			AC_SUBST([PAPI_LDFLAGS], [-lpapi -L${lsb_papi_path}/lib -L${lsb_papi_path}/lib64])
         fi

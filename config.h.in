@@ -57,8 +57,7 @@
 /* highrestimer architecture */
 #undef HRT_ARCH
 
-/* Define to the sub-directory in which libtool stores uninstalled libraries.
-   */
+/* Define to the sub-directory where libtool stores uninstalled libraries. */
 #undef LT_OBJDIR
 
 /* Name of package */

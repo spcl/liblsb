@@ -1,5 +1,5 @@
 # set the list of all test routines to compile
-TESTSOURCES = lvect_bench.cpp lvect_bench_nompi.cpp test_synch.cpp #test_cxx.cpp # stream.c # test_f90.f90
+TESTSOURCES = lvect_bench.cpp lvect_bench_nompi.cpp group_fold.c test_synch.cpp #test_cxx.cpp # stream.c # test_f90.f90
 
 # set test specific compiler and linker options
 TESTCXXFLAGS = -I$(top_srcdir) @PAPI_CFLAGS@
@@ -20,12 +20,10 @@ tests: $(TESTBINS_CPP) $(TESTBINS_F90)
 .cpp.test:
 	$(TESTCXXCOMPILE) -c -o $*.o $<
 	$(TESTCXXLINK) $*.o $(TESTLIBS)  
-	./$*.test
 
 .f90.test:
 	$(TESTF90COMPILE) -c -o $*.o $<
 	$(TESTF90LINK) $*.o $(TESTLIBS) 
-	./$*.test
 
 	
 clean-local:

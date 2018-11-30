@@ -38,12 +38,11 @@ void LSB_Set_Rparam_long(const char * id, int64_t val);
 void LSB_Set_Rparam_string(const char * id, const char * val);
 void LSB_Set_Rparam_double(const char * id, double val);
 void LSB_Reg_id(const char *format, ...);
+
 double LSB_Rec(unsigned int id);
 double LSB_Check(unsigned int id);
 double LSB_Stop(unsigned int id, unsigned int reset);
 void LSB_Next();
-//void LSB_Rec_ints(unsigned int id, int int1, int int2);
-//void LSB_Rec_intdbl(unsigned int id, int int1, double dbl);
 void LSB_Flush();
 void LSB_Res();
 void LSB_Rec_enable();
@@ -51,6 +50,9 @@ void LSB_Rec_disable();
 void LSB_Fold(unsigned int id, lsb_op_t op, double * result);
 double LSB_Wait(double microseconds);
 
+void LSB_Group_Fold(LSB_Group_t g, unsigned int id, lsb_op_t op, double * result);
+void LSB_Group_Begin(LSB_Group_t * group);
+void LSB_Group_End(LSB_Group_t * group);
 
 #ifdef HAVE_MPI_H
 

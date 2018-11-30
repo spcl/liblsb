@@ -114,6 +114,8 @@ double LSB_Wait(double microseconds){
         current = HRT_GET_USEC(ticks);
 #endif       
     } 
+
+    //printf("current-start: %lf; us: %lf\n", current - start, microseconds);
    
 #ifdef _OPENMP
 }
@@ -128,13 +130,31 @@ void _LSB_Fold(unsigned int id, int start, int stop, lsb_op_t op, double * resul
 {
 #endif
 
-    double res=-1;
+    if (lsb_data->recs.size() <= start) return; //leave result undefined
+
+    double res;
     std::vector<double> measures;
     int j=0;
-       
-
+    
+    switch (op){
+        case LSB_MAX:
+        case LSB_MIN:
+            res = lsb_data->recs[start].tduration;
+            break;
+        
+        case LSB_SUM:
+        case LSB_COUNT:
+        case LSB_MEDIAN:
+            res = 0;
+            break;
+        
+        defaul:
+            printf("[LibLSB] Unexpected operator!\n");
+            return;
+    }
+   
     for (int i=start; i<stop; i++){
-
+    
         if (id!=LSB_ANY && lsb_data->recs[i].id != id) continue;
 
         switch (op){
@@ -148,11 +168,11 @@ void _LSB_Fold(unsigned int id, int start, int stop, lsb_op_t op, double * resul
                 measures.push_back(lsb_data->recs[i].tduration);
                 break;
             case LSB_MAX:
-                if (i==0 || res<lsb_data->recs[i].tduration) 
+                if (res<lsb_data->recs[i].tduration) 
                     res = lsb_data->recs[i].tduration;
                 break;
             case LSB_MIN:
-                if (i==0 || res>lsb_data->recs[i].tduration) 
+                if (res>lsb_data->recs[i].tduration) 
                     res = lsb_data->recs[i].tduration;
                 break;
         } 
@@ -184,6 +204,14 @@ void LSB_Group_Fold(LSB_Group g, unsigned int id, lsb_op_t op, double * result){
     _LSB_Fold(id, g.start, (g.stop!=-1) ? g.stop : lsb_data->recs.size(), op, result);
 }
 
+
+void LSB_Group_Begin(LSB_Group_t * group){
+    group->start = lsb_data->next;
+}
+
+void LSB_Group_End(LSB_Group_t * group){
+    group->stop = lsb_data->next;
+}
 
 double LSB_Rec(unsigned int id){
     double res=0;
