@@ -747,7 +747,6 @@ infodir
 docdir
 oldincludedir
 includedir
-runstatedir
 localstatedir
 sharedstatedir
 sysconfdir
@@ -838,7 +837,6 @@ datadir='${datarootdir}'
 sysconfdir='${prefix}/etc'
 sharedstatedir='${prefix}/com'
 localstatedir='${prefix}/var'
-runstatedir='${localstatedir}/run'
 includedir='${prefix}/include'
 oldincludedir='/usr/include'
 docdir='${datarootdir}/doc/${PACKAGE_TARNAME}'
@@ -1091,15 +1089,6 @@ do
   | -silent | --silent | --silen | --sile | --sil)
     silent=yes ;;
 
-  -runstatedir | --runstatedir | --runstatedi | --runstated \
-  | --runstate | --runstat | --runsta | --runst | --runs \
-  | --run | --ru | --r)
-    ac_prev=runstatedir ;;
-  -runstatedir=* | --runstatedir=* | --runstatedi=* | --runstated=* \
-  | --runstate=* | --runstat=* | --runsta=* | --runst=* | --runs=* \
-  | --run=* | --ru=* | --r=*)
-    runstatedir=$ac_optarg ;;
-
   -sbindir | --sbindir | --sbindi | --sbind | --sbin | --sbi | --sb)
     ac_prev=sbindir ;;
   -sbindir=* | --sbindir=* | --sbindi=* | --sbind=* | --sbin=* \
@@ -1237,7 +1226,7 @@ fi
 for ac_var in	exec_prefix prefix bindir sbindir libexecdir datarootdir \
 		datadir sysconfdir sharedstatedir localstatedir includedir \
 		oldincludedir docdir infodir htmldir dvidir pdfdir psdir \
-		libdir localedir mandir runstatedir
+		libdir localedir mandir
 do
   eval ac_val=\$$ac_var
   # Remove trailing slashes.
@@ -1390,7 +1379,6 @@ Fine tuning of the installation directories:
   --sysconfdir=DIR        read-only single-machine data [PREFIX/etc]
   --sharedstatedir=DIR    modifiable architecture-independent data [PREFIX/com]
   --localstatedir=DIR     modifiable single-machine data [PREFIX/var]
-  --runstatedir=DIR       modifiable per-process data [LOCALSTATEDIR/run]
   --libdir=DIR            object code libraries [EPREFIX/lib]
   --includedir=DIR        C header files [PREFIX/include]
   --oldincludedir=DIR     C header files for non-gcc [/usr/include]
@@ -16787,7 +16775,7 @@ rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
   fi
   if test "x$hrt_arch" = "x"; then # if not found yet
 
-thisarch=wtime
+thisarch=aarch64
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $thisarch (HRT_ARCH 6) assembler portion compiles" >&5
 $as_echo_n "checking if $thisarch (HRT_ARCH 6) assembler portion compiles... " >&6; }
 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
@@ -16844,6 +16832,80 @@ $as_echo "$as_me: found $thisarch" >&6;}
      hrt_arch_num=6
 
 $as_echo "#define HRT_ARCH 6" >>confdefs.h
+
+     $as_echo "#define HAVE_HRTIMER, , can we use a high resolution timer 1" >>confdefs.h
+
+     { $as_echo "$as_me:${as_lineno-$LINENO}: found $thisarch" >&5
+$as_echo "$as_me: found $thisarch" >&6;}
+   fi;
+
+else
+
+   { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+  fi
+  if test "x$hrt_arch" = "x"; then # if not found yet
+
+thisarch=wtime
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking if $thisarch (HRT_ARCH 7) assembler portion compiles" >&5
+$as_echo_n "checking if $thisarch (HRT_ARCH 7) assembler portion compiles... " >&6; }
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+#define HRT_ARCH 7
+#include "$hr_subdir/hrtimer.h"
+
+int
+main ()
+{
+
+static volatile HRT_TIMESTAMP_T t1, t2;
+static volatile UINT64_T elapsed_ticks;
+unsigned long long freq;
+HRT_INIT(0,freq);
+HRT_GET_TIMESTAMP(t1);
+HRT_GET_TIMESTAMP(t2);
+HRT_GET_ELAPSED_TICKS(t1, t2, &elapsed_ticks);
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+
+   { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+   # no sanity check for MPI_Wtime() :)
+   if test "$thisarch" != "wtime"; then
+     # do sanity check ...
+     printf "compiling sanity check ... "
+     $CC $CFLAGS -DHRT_ARCH=7 $hr_subdir/sanity-check.c -o sanity
+     if test "$?" != "0"; then exit 1; fi;
+     printf "done\n"
+     if ./sanity; then
+       hrt_arch=$thisarch
+       hrt_arch_num=7
+
+$as_echo "#define HRT_ARCH 7" >>confdefs.h
+
+
+$as_echo "#define HAVE_HRTIMER /**/" >>confdefs.h
+
+       { $as_echo "$as_me:${as_lineno-$LINENO}: found $thisarch" >&5
+$as_echo "$as_me: found $thisarch" >&6;}
+     else
+       printf "sanity check failed\n"
+     fi;
+     rm -f sanity
+   else
+     # this is copied from above -- nasty ...
+     hrt_arch=$thisarch
+     hrt_arch_num=7
+
+$as_echo "#define HRT_ARCH 7" >>confdefs.h
 
      $as_echo "#define HAVE_HRTIMER, , can we use a high resolution timer 1" >>confdefs.h
 

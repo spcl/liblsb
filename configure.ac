@@ -68,7 +68,10 @@ if test "x$HRT_ARCH" = "x"; then
     HTOR_TIMERARCH(SiCortex,5, $hr_subdir)
   fi
   if test "x$hrt_arch" = "x"; then # if not found yet
-    HTOR_TIMERARCH(wtime,6, $hr_subdir)
+    HTOR_TIMERARCH(aarch64,6, $hr_subdir)
+  fi
+  if test "x$hrt_arch" = "x"; then # if not found yet
+    HTOR_TIMERARCH(wtime,7, $hr_subdir)
   fi
 
   if test "x$hrt_arch" != "x"; then

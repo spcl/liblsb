@@ -35,6 +35,9 @@
 #include "mips64-sicortex-gcc.h"
 #endif
 #if HRT_ARCH==6
+#include "aarch64-gcc-mrs.h"
+#endif
+#if HRT_ARCH==7
 #include "mpi-wtime.h"
 #endif
 
