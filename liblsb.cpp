@@ -4,6 +4,8 @@
 * found in the LICENSE file.
 */
 
+#include <cerrno>
+
 #include "config.h"
 #include "liblsb_internal.hpp"
 
@@ -831,7 +833,7 @@ static void write_host_information(FILE *fd) {
  */
 void LSB_Init(const char* projname, int autoprof_interval /* in ms, off if 0 */) {
 
-  const char *fname = projname;
+  const char *fname = projname, *dir;
   char name[1024];
   int rev;
   struct stat st;
@@ -849,15 +851,13 @@ void LSB_Init(const char* projname, int autoprof_interval /* in ms, off if 0 */)
   lsb_data->print=1;
   lsb_data->next = 0;
 
+  dir = getenv("LSB_OUTDIR");
+  if(dir == NULL) dir = ".";
+
   env = getenv("LSB_OUTFILE");
   if(env != NULL) fname = env;
-  snprintf(name, 1023, "lsb.%s", fname);
-  rev = 0;
-  while(stat(name, &st) != -1) { // path exists!
-    snprintf(name, 1023, "lsb.%s-%i", fname, ++rev);
-  }
 
-
+  snprintf(name, 1023, "%s/lsb.%s", dir, fname);
 
   int r;
 #ifdef HAVE_MPI
@@ -873,10 +873,10 @@ void LSB_Init(const char* projname, int autoprof_interval /* in ms, off if 0 */)
   lsb_data->write_header=1;
 
   if(r > 0) lsb_data->print = 0;
-  snprintf(name, 1023, "lsb.%s.r%i", fname, r);
+  snprintf(name, 1023, "%s/lsb.%s.r%i", dir, fname, r);
   rev = 0;
   while(stat(name, &st) != -1) { // path exists!
-    snprintf(name, 1023, "lsb.%s.r%i-%i", fname, r, ++rev);
+    snprintf(name, 1023, "%s/lsb.%s.r%i-%i", dir, fname, r, ++rev);
   }
 
   lsb_data->write_file=1;
@@ -930,6 +930,11 @@ void LSB_Init(const char* projname, int autoprof_interval /* in ms, off if 0 */)
   //printf("printing enabled: %i\n", lsb_data->write_file);
   if(lsb_data->write_file==1) {
     lsb_data->outfd = fopen(name, "w");
+    if (lsb_data->outfd == NULL)
+    {
+        printf("LibLSB: Error opening output file! (filename: %s)\n", name);
+        perror("LibLSB: I/O error");
+    }
     write_host_information(lsb_data->outfd);
   }
 
